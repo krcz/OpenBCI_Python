@@ -135,6 +135,7 @@ class OpenBCIWiFi(object):
         s.connect(("8.8.8.8", 80))
         local_ip_address = s.getsockname()[0]
         s.close()
+        print("IP Address:", local_ip_address)
         return local_ip_address
 
     def getBoardType(self):
@@ -283,6 +284,8 @@ class OpenBCIWiFi(object):
             return ret_val
         else:
             if self.log:
+                ret_val = res_command_post.text
+                print(ret_val)
                 print("Error code: %d %s" %
                       (res_command_post.status_code, res_command_post.text))
             raise RuntimeError("Error code: %d %s" % (
@@ -313,6 +316,7 @@ class OpenBCIWiFi(object):
             self.local_wifi_server.set_callback(callback[0])
 
         if not self.streaming:
+            self.set_sample_rate(self.sample_rate)
             self.init_streaming()
 
         # while self.streaming:
@@ -632,12 +636,16 @@ class WiFiShieldHandler(asyncore.dispatcher_with_send):
         data = self.recv(3000)
         if len(data) > 2:
             if self.high_speed:
-                packets = int(len(data) / 33)
                 raw_data_packets = []
-                for i in range(packets):
-                    raw_data_packets.append(
-                        bytearray(data[i * Constants.RAW_PACKET_SIZE: i * Constants.RAW_PACKET_SIZE +
-                                                                      Constants.RAW_PACKET_SIZE]))
+
+                s = 0
+                while s + Constants.RAW_PACKET_SIZE <= len(data):
+                    raw_data = bytearray(data[s:s + Constants.RAW_PACKET_SIZE])
+                    if self.parser.is_proper_packet(raw_data):
+                        raw_data_packets.append(raw_data)
+                        s += Constants.RAW_PACKET_SIZE
+                    else:
+                        s += 1
                 samples = self.parser.transform_raw_data_packets_to_sample(
                     raw_data_packets=raw_data_packets)
 

@@ -26,6 +26,9 @@ class ParseRaw(object):
                                                   scale_factors=self.scale_factors,
                                                   verbose=log)
 
+    def is_proper_packet(self, raw_data):
+        return len(raw_data) == 33 and self.is_stop_byte(raw_data[k.RAW_PACKET_POSITION_STOP_BYTE]) and raw_data[0] == k.RAW_BYTE_START
+
     def is_stop_byte(self, byte):
         """
         Used to check and see if a byte adheres to the stop byte structure
